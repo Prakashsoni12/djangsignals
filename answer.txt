@@ -1,0 +1,110 @@
+All 3 Questions are here below with there running examples for code you can check models.py file of an app called 'mysignalapp'.
+
+Question 1: Are Django Signals Synchronous?
+
+answer 1: By default, Django signals are executed synchronously. This means that when a signal is sent, the signal handlers (receivers) are executed immediately in the same thread as the function that sent the signal.
+
+We can demonstrate this with a simple code snippet. In this example, we'll use Django's post_save signal to observe the behavior when a model instance is saved:
+
+
+---Here is proof and check models.py file inside mysignalapp for code ---
+-- this is the django shell answer for demonstrate--
+
+>>> from mysignalapp.models import MyModel
+>>> import datetime
+>>> print(f"before save: {datetime.datetime.now()}")
+before save: 2024-09-21 15:39:01.463211
+>>> m = MyModel(name="Test 1")
+>>> m.save()
+Signal receiver started...
+Signal running synchronously - executing a delay for 5 seconds
+Signal is running in thread ID: 6684
+Signal receiver completed.
+>>> print(f"after save: {datetime.datetime.now()}") 
+after save: 2024-09-21 15:39:59.596290
+>>>
+
+
+----end----
+
+Question 2: Do django signals run in the same thread as the caller?
+
+answer Q2. Yes, by default, Django signals run in the same thread as the caller. This means that when a signal is sent, 
+the signal handler (receiver) is executed within the same thread that invoked the signal.
+To conclusively prove that Django signals run in the same thread as the caller, we can examine the thread 
+IDs of the caller and the signal receiver. If both have the same thread ID, it confirms that they run in the 
+same thread.
+
+
+---Here is proof and check models.py file inside mysignalapp for code ---
+-- this is the django shell answer for demonstrate--
+
+>>> from mysignalapp.models import MyModel
+>>> import threading
+>>> print(f"Caller thread ID: {threading.get_ident()}")
+
+Caller thread ID: 6684
+>>> m = MyModel(name="Test 2 ")
+>>> m.save()
+Signal receiver started...
+Signal running synchronously - executing a delay for 5 seconds
+Signal is running in thread ID: 6684
+Signal receiver completed.
+
+----Code End ---
+
+Question 3: By default do django signals run in the same database transaction as the caller? 
+
+answer Q3. Yes, by default, Django signals run in the same database transaction as the caller. 
+This means that if a signal handler (receiver) is triggered during a database transaction (such as saving a model instance), 
+the signal's effects will be rolled back if the transaction is not committed successfully.
+
+To conclusively prove that Django signals run in the same transaction as the caller, we can use a signal that tries to write 
+something to the database and then trigger a transaction rollback. If the data written inside the signal is rolled back along with the 
+caller's data, it confirms that signals share the same database transaction as the caller.
+
+
+>>>from myapp.models import MyModel, SignalLog
+>>>from django.db import transaction
+
+>>>SignalLog.objects.all().delete()
+(2, {'mysignalapp.SignalLog': 2})
+>>> try:
+...   with transaction.atomic():
+...      m = MyModel(name="Test 3")  
+...      m.save()
+...      raise Exception("Forcing a rollback")
+... except Exception as e:
+...     print(f"Transaction rolled back due to: {e}")
+... logentries = SignalLog.objects.all()
+>>>print(f"Number of SignalLog entries after transaction: {logentries.count()}")
+Number of SignalLog entries after transaction: 0
+
+
+-----Topic: Custom Classes in Python-----
+
+Description: You are tasked with creating a Rectangle class with the following requirements:
+
+An instance of the Rectangle class requires length:int and width:int to be initialized.
+We can iterate over an instance of the Rectangle class 
+When an instance of the Rectangle class is iterated over, we first get its length in the format: {'length': <VALUE_OF_LENGTH>} followed by the 
+width {width: <VALUE_OF_WIDTH>}
+
+
+Answer code: 
+class Rectangle:
+    def __init__(self, length: int, width: int):
+        self.length = length
+        self.width = width
+
+    # Making the class iterable
+    def __iter__(self):
+        yield {'length': self.length}
+        yield {'width': self.width}
+
+##calling instance 
+rect = Rectangle(10, 5)
+
+##Iterating over the Rectangle instance
+for dimension in rect:
+    print(dimension)
